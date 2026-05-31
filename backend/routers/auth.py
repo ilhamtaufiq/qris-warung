@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from database import get_db
 import models, schemas
 from config import settings
+from services.payment_settings import ensure_payment_setting
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -42,6 +43,8 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     new_store = models.Store(name=user.store_name, owner_id=new_user.id)
     db.add(new_store)
     db.commit()
+    db.refresh(new_store)
+    ensure_payment_setting(db, new_store.id)
     
     return new_user
 

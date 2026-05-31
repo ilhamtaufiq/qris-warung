@@ -25,6 +25,18 @@ class Store(Base):
     owner = relationship("User", back_populates="store")
     transactions = relationship("Transaction", back_populates="store")
     devices = relationship("Device", back_populates="store")
+    payment_setting = relationship("PaymentSetting", back_populates="store", uselist=False)
+
+
+class PaymentSetting(Base):
+    __tablename__ = "payment_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    store_id = Column(Integer, ForeignKey("stores.id"), unique=True)
+    payment_mode = Column(String(50), default="qris")  # qris, snap
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    store = relationship("Store", back_populates="payment_setting")
 
 class Transaction(Base):
     __tablename__ = "transactions"
@@ -34,6 +46,7 @@ class Transaction(Base):
     amount = Column(Integer)
     status = Column(String(50), default="pending") # pending, success, expired
     payment_type = Column(String(50), nullable=True) # qris
+    payment_url = Column(String(500), nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     
     store = relationship("Store", back_populates="transactions")

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional, List
+from typing import Optional, Literal
 from datetime import datetime
 
 class UserCreate(BaseModel):
@@ -39,12 +39,25 @@ class LoginResponse(Token):
 class TransactionCreate(BaseModel):
     amount: int
 
+
+class PaymentSettingUpdate(BaseModel):
+    payment_mode: Literal["qris", "snap"]
+
+
+class PaymentSettingResponse(BaseModel):
+    store_id: int
+    payment_mode: Literal["qris", "snap"]
+    effective_mode: Literal["qris", "snap"]
+    is_locked: bool
+
 class TransactionResponse(BaseModel):
     id: str
     store_id: int
     amount: int
     status: str
     created_at: datetime
+    payment_type: Optional[str] = None
+    payment_url: Optional[str] = None
     qr_url: Optional[str] = None
 
     class Config:

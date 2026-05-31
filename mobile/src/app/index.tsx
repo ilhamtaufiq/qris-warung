@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import axios from 'axios';
 import { useAuthStore } from '../../store';
+import { getApiBaseUrl } from '@/lib/api';
 import { NeoButton, NeoCard, NeoInput, NeoPill, NeoScreen } from '@/components/neo';
 
 function formatCurrency(value: string) {
@@ -15,9 +17,34 @@ function formatCurrency(value: string) {
 
 export default function DashboardScreen() {
   const [amount, setAmount] = useState('');
+  const [paymentMode, setPaymentMode] = useState<'qris' | 'snap' | null>(null);
+  const [loadingMode, setLoadingMode] = useState(true);
   const router = useRouter();
   const logout = useAuthStore(state => state.logout);
   const storeId = useAuthStore(state => state.storeId);
+  const token = useAuthStore(state => state.token);
+
+  useEffect(() => {
+    const loadPaymentMode = async () => {
+      if (!storeId || !token) {
+        setLoadingMode(false);
+        return;
+      }
+
+      try {
+        const response = await axios.get(`${getApiBaseUrl()}/api/settings/${storeId}/payment`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setPaymentMode(response.data.effective_mode ?? response.data.payment_mode ?? null);
+      } catch {
+        setPaymentMode(null);
+      } finally {
+        setLoadingMode(false);
+      }
+    };
+
+    loadPaymentMode();
+  }, [storeId, token]);
 
   const handleGenerateQR = () => {
     const parsed = Number(amount);
@@ -36,16 +63,37 @@ export default function DashboardScreen() {
           <View style={styles.brandBlock}>
             <NeoPill label="QRIS local" tone="lime" />
             <Text style={styles.title}>Warung Payment</Text>
-            <Text style={styles.subtitle}>Generate QRIS, terima notifikasi real-time.</Text>
+            <Text style={styles.subtitle}>Generate Snap atau QRIS, terima notifikasi real-time.</Text>
           </View>
-          <NeoButton label="Logout" variant="danger" onPress={logout} />
+          <View style={styles.actionStack}>
+            <NeoButton
+              label="Midtrans Settings"
+              variant="secondary"
+              onPress={() => router.push({ pathname: '/settings' } as any)}
+            />
+            <NeoButton label="Logout" variant="danger" onPress={logout} />
+          </View>
         </View>
 
         <NeoCard>
-          <NeoPill label={storeId ? `Store #${storeId}` : 'No store'} tone="cyan" />
-          <Text style={styles.cardTitle}>Generate New QRIS</Text>
+          <View style={styles.metaRow}>
+            <NeoPill label={storeId ? `Store #${storeId}` : 'No store'} tone="cyan" />
+            <NeoPill
+              label={
+                loadingMode
+                  ? 'Loading mode'
+                  : paymentMode === 'snap'
+                    ? 'Mode SNAP'
+                    : paymentMode === 'qris'
+                      ? 'Mode QRIS'
+                      : 'Mode unknown'
+              }
+              tone="warning"
+            />
+          </View>
+          <Text style={styles.cardTitle}>Generate Payment</Text>
           <Text style={styles.cardText}>
-            Masukkan nominal dan kirim QR dinamis ke pelanggan. Webhook Midtrans akan memicu status pembayaran otomatis.
+            Masukkan nominal dan kirim pembayaran. Sandbox dipaksa ke Snap, production bisa Snap atau QRIS dinamis lewat settings.
           </Text>
 
           <NeoInput
@@ -61,7 +109,7 @@ export default function DashboardScreen() {
             <Text style={styles.previewValue}>{formatCurrency(amount)}</Text>
           </View>
 
-          <NeoButton label="Generate QR Code" onPress={handleGenerateQR} />
+          <NeoButton label="Generate Payment" onPress={handleGenerateQR} />
         </NeoCard>
 
         <NeoCard>
@@ -83,7 +131,15 @@ const styles = StyleSheet.create({
   topRow: {
     gap: 14,
   },
+  actionStack: {
+    gap: 10,
+  },
   brandBlock: {
+    gap: 8,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
   },
   title: {

@@ -1,6 +1,7 @@
 from database import SessionLocal, engine, Base
 import models
 from routers.auth import get_password_hash
+from services.payment_settings import ensure_payment_setting
 
 # Ensure tables are created
 Base.metadata.create_all(bind=engine)
@@ -34,6 +35,8 @@ def seed_admin():
         )
         db.add(new_store)
         db.commit()
+        db.refresh(new_store)
+        ensure_payment_setting(db, new_store.id)
         
         print("Successfully seeded default admin!")
         print(f"Email: {admin_email}")

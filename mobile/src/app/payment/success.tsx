@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
 import { COLORS, NeoButton, NeoCard, NeoPill, NeoScreen } from '@/components/neo';
+import { formatCurrencySpeech } from '@/lib/speech';
 
 function asText(value: string | string[] | undefined) {
   if (Array.isArray(value)) {
@@ -19,6 +20,8 @@ export default function PaymentSuccessScreen() {
   const orderId = asText(params.order_id);
   const transactionStatus = asText(params.transaction_status);
   const statusCode = asText(params.status_code);
+  const amountParam = asText(params.amount ?? params.gross_amount);
+  const amount = Number(amountParam);
 
   const title = useMemo(() => {
     if (transactionStatus === 'settlement' || transactionStatus === 'capture') {
@@ -38,16 +41,24 @@ export default function PaymentSuccessScreen() {
 
     didSpeak.current = true;
     Speech.stop();
-    Speech.speak('Pembayaran berhasil', {
+    const speechText = Number.isFinite(amount) && amount > 0
+      ? `Pembayaran berhasil, ${formatCurrencySpeech(amount)}`
+      : 'Pembayaran berhasil';
+
+    Speech.speak(speechText, {
       language: 'id-ID',
       rate: 0.95,
       pitch: 1,
     });
-  }, [transactionStatus]);
+  }, [amount, transactionStatus]);
 
   const replayVoice = () => {
     Speech.stop();
-    Speech.speak('Pembayaran berhasil', {
+    const speechText = Number.isFinite(amount) && amount > 0
+      ? `Pembayaran berhasil, ${formatCurrencySpeech(amount)}`
+      : 'Pembayaran berhasil';
+
+    Speech.speak(speechText, {
       language: 'id-ID',
       rate: 0.95,
       pitch: 1,
@@ -80,6 +91,13 @@ export default function PaymentSuccessScreen() {
           <View style={styles.detailBox}>
             <Text style={styles.detailLabel}>Status Code</Text>
             <Text style={styles.detailValue}>{statusCode || '-'}</Text>
+          </View>
+
+          <View style={styles.detailBox}>
+            <Text style={styles.detailLabel}>Amount</Text>
+            <Text style={styles.detailValue}>
+              {Number.isFinite(amount) && amount > 0 ? `Rp ${amount.toLocaleString('id-ID')}` : '-'}
+            </Text>
           </View>
 
           <Text style={styles.note}>

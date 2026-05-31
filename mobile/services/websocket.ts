@@ -1,6 +1,7 @@
 import { Alert } from 'react-native';
 import * as Speech from 'expo-speech';
 import { getWebSocketUrl } from '@/lib/api';
+import { formatCurrencySpeech } from '@/lib/speech';
 
 function speak(text: string) {
   try {
@@ -38,7 +39,8 @@ export class WebSocketService {
       try {
         const data = JSON.parse(e.data);
         if (data.event === 'payment_success') {
-          speak('Pembayaran berhasil');
+          const amount = Number(data.amount ?? 0);
+          speak(`Pembayaran berhasil, ${formatCurrencySpeech(amount)}`);
           Alert.alert("PAYMENT RECEIVED!", `Amount: Rp ${data.amount}`);
         } else if (data.event === 'payment_expired') {
           speak('Pembayaran kedaluwarsa');

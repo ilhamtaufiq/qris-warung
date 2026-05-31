@@ -65,7 +65,7 @@ def create_snap_transaction(order_id: str, amount: float):
         "credit_card": {
             "secure": True,
         },
-        "finish_redirect_url": f"{frontend_url}/payment/success?order_id={order_id}",
+        "finish_redirect_url": f"{frontend_url}/payment/success?order_id={order_id}&amount={gross_amount}",
         "unfinish_redirect_url": f"{frontend_url}/payment/unfinish?order_id={order_id}",
         "error_redirect_url": f"{frontend_url}/payment/error?order_id={order_id}",
     }

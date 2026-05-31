@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import axios from 'axios';
 import * as Speech from 'expo-speech';
 import { useAuthStore, usePaymentNoticeStore } from '../../store';
@@ -22,15 +22,51 @@ export default function DashboardScreen() {
   const [paymentMode, setPaymentMode] = useState<'qris' | 'snap' | null>(null);
   const [loadingMode, setLoadingMode] = useState(true);
   const router = useRouter();
+  const params = useLocalSearchParams();
   const logout = useAuthStore(state => state.logout);
   const storeId = useAuthStore(state => state.storeId);
   const token = useAuthStore(state => state.token);
   const paymentNotice = usePaymentNoticeStore(state => state);
+  const setPaymentNotice = usePaymentNoticeStore(state => state.setPaymentNotice);
   const didSpeak = useRef(false);
+  const didHandleRedirectNotice = useRef<string | null>(null);
+  const paymentNoticeFlag = Array.isArray(params.payment_notice) ? params.payment_notice[0] : params.payment_notice;
+  const paymentOrderId = Array.isArray(params.order_id) ? params.order_id[0] : params.order_id;
+  const paymentStatusCode = Array.isArray(params.status_code) ? params.status_code[0] : params.status_code;
+  const paymentTransactionStatus = Array.isArray(params.transaction_status)
+    ? params.transaction_status[0]
+    : params.transaction_status;
+  const paymentAmountParam = Array.isArray(params.amount ?? params.gross_amount)
+    ? (params.amount ?? params.gross_amount)[0]
+    : (params.amount ?? params.gross_amount);
   const paymentAmount = typeof paymentNotice.amount === 'number' && paymentNotice.amount > 0 ? paymentNotice.amount : null;
   const isSuccess = paymentNotice.transactionStatus === 'settlement' || paymentNotice.transactionStatus === 'capture';
   const isPending = paymentNotice.transactionStatus === 'pending';
   const isFailed = paymentNotice.transactionStatus === 'deny' || paymentNotice.transactionStatus === 'cancel' || paymentNotice.transactionStatus === 'expire';
+
+  useEffect(() => {
+    if (paymentNoticeFlag !== '1' || !paymentOrderId) {
+      return;
+    }
+
+    const redirectKey = `${paymentOrderId}-${paymentStatusCode ?? ''}-${paymentTransactionStatus ?? ''}-${paymentAmountParam ?? ''}`;
+    if (didHandleRedirectNotice.current === redirectKey) {
+      return;
+    }
+
+    didHandleRedirectNotice.current = redirectKey;
+    const parsedAmount = Number(paymentAmountParam);
+    setPaymentNotice({
+      orderId: paymentOrderId,
+      statusCode: paymentStatusCode ?? null,
+      transactionStatus: paymentTransactionStatus ?? null,
+      amount: Number.isFinite(parsedAmount) && parsedAmount > 0 ? parsedAmount : null,
+    });
+
+    setTimeout(() => {
+      router.replace('/');
+    }, 0);
+  }, [paymentAmountParam, paymentNoticeFlag, paymentOrderId, paymentStatusCode, paymentTransactionStatus, router, setPaymentNotice]);
 
   useEffect(() => {
     if (!paymentNotice.visible) {

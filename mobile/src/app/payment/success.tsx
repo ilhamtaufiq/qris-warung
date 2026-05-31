@@ -76,7 +76,16 @@ export default function PaymentSuccessScreen() {
       transactionStatus,
       amount: amount && amount > 0 ? amount : null,
     });
-    router.replace('/');
+    router.replace({
+      pathname: '/',
+      params: {
+        payment_notice: '1',
+        order_id: orderId,
+        status_code: statusCode,
+        transaction_status: transactionStatus,
+        amount: amount && amount > 0 ? String(amount) : '',
+      },
+    } as any);
   }, [amount, canStoreNotice, orderId, router, setPaymentNotice, statusCode, transactionStatus]);
 
   const detailAmount = amount && amount > 0 ? `Rp ${amount.toLocaleString('id-ID')}` : amountLoaded ? '-' : 'Loading...';

@@ -16,6 +16,7 @@ cors_origins = [origin.strip() for origin in settings.CORS_ORIGINS.split(",") if
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
+    allow_origin_regex=r"^https://([a-z0-9-]+\.)*cianjur\.space$",
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],

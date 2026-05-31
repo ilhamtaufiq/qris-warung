@@ -83,6 +83,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(transactions.router, prefix="/api/transactions", tags=["transactions"])
 app.include_router(settings_router.router, prefix="/api/settings", tags=["settings"])
 app.include_router(webhooks.router, prefix="/api/webhooks", tags=["webhooks"])
+app.include_router(webhooks.public_router, tags=["webhooks"])
 
 @app.get("/")
 def read_root():

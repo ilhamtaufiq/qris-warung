@@ -1,3 +1,4 @@
+import json
 import hashlib
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -25,7 +26,11 @@ def verify_signature(payload: dict) -> bool:
     return signature_key == expected_signature
 
 async def _handle_midtrans_webhook(request: Request, db: Session = Depends(get_db)):
-    payload = await request.json()
+    try:
+        payload = await request.json()
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+
     print(
         "Midtrans webhook received",
         {

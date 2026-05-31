@@ -10,6 +10,7 @@ class Settings:
     MIDTRANS_SERVER_KEY: str = os.getenv("MIDTRANS_SERVER_KEY", "")
     MIDTRANS_CLIENT_KEY: str = os.getenv("MIDTRANS_CLIENT_KEY", "")
     CORS_ORIGINS: str = os.getenv("CORS_ORIGINS", "https://qris.cianjur.space,http://localhost:3000,http://localhost:8081")
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "https://qris.cianjur.space")
     JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "secret")
     JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
 

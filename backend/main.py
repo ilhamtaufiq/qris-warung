@@ -69,6 +69,7 @@ manager = ConnectionManager()
 
 @app.websocket("/ws/{store_id}")
 async def websocket_endpoint(websocket: WebSocket, store_id: int):
+    print(f"WS connect store_id={store_id}")
     await manager.connect(websocket, store_id)
     try:
         while True:
@@ -76,6 +77,7 @@ async def websocket_endpoint(websocket: WebSocket, store_id: int):
             data = await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket, store_id)
+        print(f"WS disconnect store_id={store_id}")
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(transactions.router, prefix="/api/transactions", tags=["transactions"])

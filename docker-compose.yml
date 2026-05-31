@@ -25,6 +25,7 @@ services:
       MIDTRANS_SERVER_KEY: ${MIDTRANS_SERVER_KEY}
       MIDTRANS_CLIENT_KEY: ${MIDTRANS_CLIENT_KEY}
       CORS_ORIGINS: ${CORS_ORIGINS:-https://qris.cianjur.space}
+      FRONTEND_URL: ${FRONTEND_URL:-https://qris.cianjur.space}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change_me}
       JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
     expose:
@@ -55,6 +56,7 @@ services:
       MIDTRANS_SERVER_KEY: ${MIDTRANS_SERVER_KEY}
       MIDTRANS_CLIENT_KEY: ${MIDTRANS_CLIENT_KEY}
       CORS_ORIGINS: ${CORS_ORIGINS:-https://qris.cianjur.space}
+      FRONTEND_URL: ${FRONTEND_URL:-https://qris.cianjur.space}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change_me}
       JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
     command: ["python", "seed.py"]

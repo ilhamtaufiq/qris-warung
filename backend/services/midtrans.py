@@ -55,6 +55,9 @@ def create_snap_transaction(order_id: str, amount: float):
         "credit_card": {
             "secure": True,
         },
+        "finish_redirect_url": f"{settings.FRONTEND_URL}/payment/success?order_id={order_id}",
+        "unfinish_redirect_url": f"{settings.FRONTEND_URL}/payment/unfinish?order_id={order_id}",
+        "error_redirect_url": f"{settings.FRONTEND_URL}/payment/error?order_id={order_id}",
     }
     return snap_api.create_transaction(param)
 

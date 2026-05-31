@@ -11,7 +11,7 @@ export function getApiBaseUrl() {
   }
 
   if (process.env.NODE_ENV === 'production') {
-    return 'https://qris.cianjur.space';
+    return 'https://api.qris.cianjur.space';
   }
 
   if (Platform.OS === 'android') {

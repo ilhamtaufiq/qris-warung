@@ -21,6 +21,7 @@ export default function DashboardScreen() {
   const [amount, setAmount] = useState('');
   const [paymentMode, setPaymentMode] = useState<'qris' | 'snap' | null>(null);
   const [loadingMode, setLoadingMode] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const params = useLocalSearchParams();
   const logout = useAuthStore(state => state.logout);
@@ -45,7 +46,12 @@ export default function DashboardScreen() {
   const isFailed = paymentNotice.transactionStatus === 'deny' || paymentNotice.transactionStatus === 'cancel' || paymentNotice.transactionStatus === 'expire';
 
   useEffect(() => {
-    if (paymentNoticeFlag !== '1' || !paymentOrderId) {
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted || paymentNoticeFlag !== '1' || !paymentOrderId) {
       return;
     }
 
@@ -66,7 +72,7 @@ export default function DashboardScreen() {
     setTimeout(() => {
       router.replace('/');
     }, 0);
-  }, [paymentAmountParam, paymentNoticeFlag, paymentOrderId, paymentStatusCode, paymentTransactionStatus, router, setPaymentNotice]);
+  }, [mounted, paymentAmountParam, paymentNoticeFlag, paymentOrderId, paymentStatusCode, paymentTransactionStatus, router, setPaymentNotice]);
 
   useEffect(() => {
     if (!paymentNotice.visible) {
@@ -204,7 +210,7 @@ export default function DashboardScreen() {
       </ScrollView>
 
       <Modal
-        visible={paymentNotice.visible}
+        visible={mounted && paymentNotice.visible}
         transparent
         animationType="fade"
         onRequestClose={closePaymentNotice}

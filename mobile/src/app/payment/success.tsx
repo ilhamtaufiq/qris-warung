@@ -18,6 +18,7 @@ export default function PaymentSuccessScreen() {
   const params = useLocalSearchParams();
   const didRedirect = useRef(false);
   const setPaymentNotice = usePaymentNoticeStore(state => state.setPaymentNotice);
+  const [mounted, setMounted] = useState(false);
 
   const orderId = asText(params.order_id);
   const transactionStatus = asText(params.transaction_status);
@@ -32,6 +33,11 @@ export default function PaymentSuccessScreen() {
   const canStoreNotice = useMemo(() => {
     return Boolean(orderId) && amountLoaded;
   }, [amountLoaded, orderId]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (hasDirectAmount || !orderId) {
@@ -65,7 +71,7 @@ export default function PaymentSuccessScreen() {
   }, [hasDirectAmount, orderId]);
 
   useEffect(() => {
-    if (!canStoreNotice || didRedirect.current) {
+    if (!mounted || !canStoreNotice || didRedirect.current) {
       return;
     }
 
@@ -86,7 +92,15 @@ export default function PaymentSuccessScreen() {
         amount: amount && amount > 0 ? String(amount) : '',
       },
     } as any);
-  }, [amount, canStoreNotice, orderId, router, setPaymentNotice, statusCode, transactionStatus]);
+  }, [amount, canStoreNotice, mounted, orderId, router, setPaymentNotice, statusCode, transactionStatus]);
+
+  if (!mounted) {
+    return (
+      <NeoScreen>
+        <View style={styles.center} />
+      </NeoScreen>
+    );
+  }
 
   const detailAmount = amount && amount > 0 ? `Rp ${amount.toLocaleString('id-ID')}` : amountLoaded ? '-' : 'Loading...';
 

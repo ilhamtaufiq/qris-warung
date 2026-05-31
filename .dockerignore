@@ -1,0 +1,21 @@
+# Node / Expo
+mobile/node_modules/
+mobile/.expo/
+mobile/dist/
+mobile/web-build/
+mobile/.env*.local
+mobile/*.tsbuildinfo
+mobile/expo-env.d.ts
+
+# Python
+backend/venv/
+backend/__pycache__/
+backend/**/*.pyc
+backend/.env
+
+# Git / editor
+.git/
+.vscode/
+*.log
+.DS_Store
+Thumbs.db

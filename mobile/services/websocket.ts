@@ -34,12 +34,16 @@ export class WebSocketService {
       }
     };
     
-    this.ws.onerror = (e: any) => {
-      console.error("WebSocket error:", e.message);
+    this.ws.onerror = (e) => {
+      console.error("WebSocket error:", e);
     };
     
-    this.ws.onclose = () => {
-      console.log('WebSocket disconnected');
+    this.ws.onclose = (e) => {
+      console.log('WebSocket disconnected', {
+        code: e.code,
+        reason: e.reason,
+        wasClean: e.wasClean,
+      });
       if (this.shouldReconnect) {
         setTimeout(() => this.connect(storeId), 5000);
       }

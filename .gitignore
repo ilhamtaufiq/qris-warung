@@ -1,0 +1,20 @@
+# Python
+backend/venv/
+backend/__pycache__/
+backend/**/*.pyc
+backend/.env
+
+# Node / Expo
+mobile/node_modules/
+mobile/.expo/
+mobile/dist/
+mobile/web-build/
+mobile/.env*.local
+mobile/*.tsbuildinfo
+mobile/expo-env.d.ts
+
+# Local editor and OS files
+.vscode/
+*.log
+.DS_Store
+Thumbs.db

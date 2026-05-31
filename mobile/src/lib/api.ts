@@ -11,7 +11,7 @@ export function getApiBaseUrl() {
   }
 
   if (process.env.NODE_ENV === 'production') {
-    return 'https://api.qris.cianjur.space';
+    return 'https://qris.cianjur.space/api';
   }
 
   if (Platform.OS === 'android') {
@@ -22,7 +22,12 @@ export function getApiBaseUrl() {
 }
 
 export function getWebSocketUrl(path: string) {
-  const baseUrl = getApiBaseUrl().replace(/^http(s)?/, 'ws$1');
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+  if (process.env.NODE_ENV === 'production') {
+    return `wss://qris.cianjur.space${normalizedPath}`;
+  }
+
+  const baseUrl = getApiBaseUrl().replace(/^http(s)?/, 'ws$1');
   return `${baseUrl}${normalizedPath}`;
 }

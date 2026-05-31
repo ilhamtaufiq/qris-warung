@@ -1,0 +1,61 @@
+services:
+  mysql:
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-qris_db}
+      MYSQL_USER: ${MYSQL_USER:-qris_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-qris_password}
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    environment:
+      DATABASE_URL: mysql+pymysql://${MYSQL_USER:-qris_user}:${MYSQL_PASSWORD:-qris_password}@mysql:3306/${MYSQL_DATABASE:-qris_db}
+      MIDTRANS_IS_PRODUCTION: ${MIDTRANS_IS_PRODUCTION:-true}
+      MIDTRANS_SERVER_KEY: ${MIDTRANS_SERVER_KEY}
+      MIDTRANS_CLIENT_KEY: ${MIDTRANS_CLIENT_KEY}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change_me}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        EXPO_PUBLIC_API_URL: ${EXPO_PUBLIC_API_URL:-https://api.qris.cianjur.space}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+  seed:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      - mysql
+    environment:
+      DATABASE_URL: mysql+pymysql://${MYSQL_USER:-qris_user}:${MYSQL_PASSWORD:-qris_password}@mysql:3306/${MYSQL_DATABASE:-qris_db}
+      MIDTRANS_IS_PRODUCTION: ${MIDTRANS_IS_PRODUCTION:-true}
+      MIDTRANS_SERVER_KEY: ${MIDTRANS_SERVER_KEY}
+      MIDTRANS_CLIENT_KEY: ${MIDTRANS_CLIENT_KEY}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change_me}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+    command: ["python", "seed.py"]
+    profiles:
+      - seed
+
+volumes:
+  mysql_data:

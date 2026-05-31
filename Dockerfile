@@ -3,6 +3,8 @@ FROM node:20-alpine AS builder
 WORKDIR /app/mobile
 
 ENV NODE_ENV=production
+ARG EXPO_PUBLIC_API_URL
+ENV EXPO_PUBLIC_API_URL=${EXPO_PUBLIC_API_URL}
 
 COPY mobile/package.json mobile/package-lock.json ./
 RUN npm ci

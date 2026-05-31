@@ -9,8 +9,13 @@ export default function RootLayout() {
   const storeId = useAuthStore(state => state.storeId);
   const segments = useSegments();
   const router = useRouter();
+  const hasHydrated = useAuthStore.persist.hasHydrated();
 
   useEffect(() => {
+    if (!hasHydrated) {
+      return;
+    }
+
     const inAuthGroup = segments[0] === 'login';
 
     if (!token && !inAuthGroup) {
@@ -18,9 +23,13 @@ export default function RootLayout() {
     } else if (token && inAuthGroup) {
       router.replace('/');
     }
-  }, [token, segments, router]);
+  }, [hasHydrated, token, segments, router]);
 
   useEffect(() => {
+    if (!hasHydrated) {
+      return;
+    }
+
     if (token && storeId) {
       wsService.connect(storeId);
     } else {
@@ -29,7 +38,11 @@ export default function RootLayout() {
     return () => {
       wsService.disconnect();
     };
-  }, [token, storeId]);
+  }, [hasHydrated, token, storeId]);
+
+  if (!hasHydrated) {
+    return null;
+  }
 
   return (
     <Stack screenOptions={{ headerShown: false }}>

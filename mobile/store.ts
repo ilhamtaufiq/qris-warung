@@ -8,6 +8,21 @@ interface AuthState {
   logout: () => void;
 }
 
+interface PaymentNoticeState {
+  visible: boolean;
+  orderId: string | null;
+  statusCode: string | null;
+  transactionStatus: string | null;
+  amount: number | null;
+  setPaymentNotice: (payload: {
+    orderId: string;
+    statusCode: string | null;
+    transactionStatus: string | null;
+    amount: number | null;
+  }) => void;
+  clearPaymentNotice: () => void;
+}
+
 const webStorage = {
   getItem: async (name: string) => {
     return typeof window === 'undefined' ? null : window.localStorage.getItem(name);
@@ -34,6 +49,38 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'warung-auth',
+      storage: createJSONStorage(() => webStorage),
+    }
+  )
+);
+
+export const usePaymentNoticeStore = create<PaymentNoticeState>()(
+  persist(
+    (set) => ({
+      visible: false,
+      orderId: null,
+      statusCode: null,
+      transactionStatus: null,
+      amount: null,
+      setPaymentNotice: ({ orderId, statusCode, transactionStatus, amount }) =>
+        set({
+          visible: true,
+          orderId,
+          statusCode,
+          transactionStatus,
+          amount,
+        }),
+      clearPaymentNotice: () =>
+        set({
+          visible: false,
+          orderId: null,
+          statusCode: null,
+          transactionStatus: null,
+          amount: null,
+        }),
+    }),
+    {
+      name: 'warung-payment-notice',
       storage: createJSONStorage(() => webStorage),
     }
   )

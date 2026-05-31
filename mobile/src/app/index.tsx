@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import axios from 'axios';
-import { useAuthStore } from '../../store';
+import * as Speech from 'expo-speech';
+import { useAuthStore, usePaymentNoticeStore } from '../../store';
 import { getApiBaseUrl } from '@/lib/api';
 import { NeoButton, NeoCard, NeoInput, NeoPill, NeoScreen } from '@/components/neo';
+import { formatCurrencySpeech } from '@/lib/speech';
 
 function formatCurrency(value: string) {
   const parsed = Number(value);
@@ -23,6 +25,46 @@ export default function DashboardScreen() {
   const logout = useAuthStore(state => state.logout);
   const storeId = useAuthStore(state => state.storeId);
   const token = useAuthStore(state => state.token);
+  const paymentNotice = usePaymentNoticeStore(state => state);
+  const didSpeak = useRef(false);
+  const paymentAmount = typeof paymentNotice.amount === 'number' && paymentNotice.amount > 0 ? paymentNotice.amount : null;
+  const isSuccess = paymentNotice.transactionStatus === 'settlement' || paymentNotice.transactionStatus === 'capture';
+  const isPending = paymentNotice.transactionStatus === 'pending';
+  const isFailed = paymentNotice.transactionStatus === 'deny' || paymentNotice.transactionStatus === 'cancel' || paymentNotice.transactionStatus === 'expire';
+
+  useEffect(() => {
+    if (!paymentNotice.visible) {
+      didSpeak.current = false;
+      return;
+    }
+
+    if (didSpeak.current) {
+      return;
+    }
+
+    didSpeak.current = true;
+    Speech.stop();
+
+    let speechText = 'Status pembayaran diterima';
+    if (isSuccess) {
+      speechText = paymentAmount ? `Pembayaran berhasil, ${formatCurrencySpeech(paymentAmount)}` : 'Pembayaran berhasil';
+    } else if (isPending) {
+      speechText = paymentAmount ? `Pembayaran menunggu, ${formatCurrencySpeech(paymentAmount)}` : 'Pembayaran menunggu';
+    } else if (isFailed) {
+      speechText = paymentAmount ? `Pembayaran gagal, ${formatCurrencySpeech(paymentAmount)}` : 'Pembayaran gagal';
+    }
+
+    Speech.speak(speechText, {
+      language: 'id-ID',
+      rate: 0.95,
+      pitch: 1,
+    });
+  }, [isFailed, isPending, isSuccess, paymentAmount, paymentNotice.visible]);
+
+  const closePaymentNotice = () => {
+    Speech.stop();
+    paymentNotice.clearPaymentNotice();
+  };
 
   useEffect(() => {
     const loadPaymentMode = async () => {
@@ -124,6 +166,55 @@ export default function DashboardScreen() {
           </Text>
         </NeoCard>
       </ScrollView>
+
+      <Modal
+        visible={paymentNotice.visible}
+        transparent
+        animationType="fade"
+        onRequestClose={closePaymentNotice}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={closePaymentNotice}>
+          <Pressable style={styles.modalCard} onPress={() => undefined}>
+            <View style={styles.modalHeader}>
+              <NeoPill
+                label={isSuccess ? 'Payment Success' : isPending ? 'Payment Pending' : 'Payment Status'}
+                tone={isSuccess ? 'lime' : isPending ? 'warning' : 'cyan'}
+              />
+              <Text style={styles.modalTitle}>
+                {isSuccess ? 'Pembayaran Berhasil' : isPending ? 'Pembayaran Menunggu' : 'Status Pembayaran'}
+              </Text>
+              <Text style={styles.modalSubtitle}>
+                {isSuccess
+                  ? 'Transaksi sudah terkonfirmasi. Modal ini akan hilang setelah ditutup.'
+                  : isPending
+                    ? 'Midtrans masih memproses pembayaran.'
+                    : 'Status transaksi sudah diterima dari Midtrans.'}
+              </Text>
+            </View>
+
+            <View style={styles.modalDetail}>
+              <Text style={styles.modalLabel}>Order ID</Text>
+              <Text style={styles.modalValue}>{paymentNotice.orderId || '-'}</Text>
+            </View>
+
+            <View style={styles.modalDetail}>
+              <Text style={styles.modalLabel}>Status Code</Text>
+              <Text style={styles.modalValue}>{paymentNotice.statusCode || '-'}</Text>
+            </View>
+
+            <View style={styles.modalDetail}>
+              <Text style={styles.modalLabel}>Amount</Text>
+              <Text style={styles.modalValue}>
+                {paymentAmount ? `Rp ${paymentAmount.toLocaleString('id-ID')}` : '-'}
+              </Text>
+            </View>
+
+            <View style={styles.modalActions}>
+              <NeoButton label="Tutup" onPress={closePaymentNotice} />
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </NeoScreen>
   );
 }
@@ -190,5 +281,61 @@ const styles = StyleSheet.create({
     color: '#111111',
     fontSize: 20,
     fontWeight: '900',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    borderWidth: 3,
+    borderColor: '#111111',
+    borderRadius: 18,
+    backgroundColor: '#F9F5EE',
+    padding: 16,
+    gap: 12,
+    shadowColor: '#111111',
+    shadowOffset: { width: 6, height: 6 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 10,
+  },
+  modalHeader: {
+    gap: 8,
+  },
+  modalTitle: {
+    color: '#111111',
+    fontSize: 26,
+    lineHeight: 30,
+    fontWeight: '900',
+  },
+  modalSubtitle: {
+    color: '#111111',
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '700',
+  },
+  modalDetail: {
+    borderWidth: 3,
+    borderColor: '#111111',
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    padding: 12,
+    gap: 4,
+  },
+  modalLabel: {
+    color: '#111111',
+    fontSize: 12,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  modalValue: {
+    color: '#111111',
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  modalActions: {
+    marginTop: 4,
   },
 });

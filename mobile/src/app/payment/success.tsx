@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import axios from 'axios';
-import * as Speech from 'expo-speech';
 import { COLORS, NeoButton, NeoCard, NeoPill, NeoScreen } from '@/components/neo';
 import { getApiBaseUrl } from '@/lib/api';
-import { formatCurrencySpeech } from '@/lib/speech';
+import { usePaymentNoticeStore } from '../../../store';
 
 function asText(value: string | string[] | undefined) {
   if (Array.isArray(value)) {
@@ -17,7 +16,8 @@ function asText(value: string | string[] | undefined) {
 export default function PaymentSuccessScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const didSpeak = useRef(false);
+  const didRedirect = useRef(false);
+  const setPaymentNotice = usePaymentNoticeStore(state => state.setPaymentNotice);
 
   const orderId = asText(params.order_id);
   const transactionStatus = asText(params.transaction_status);
@@ -27,15 +27,14 @@ export default function PaymentSuccessScreen() {
   const hasDirectAmount = Number.isFinite(directAmount) && directAmount > 0;
   const [resolvedAmount, setResolvedAmount] = useState<number | null>(hasDirectAmount ? directAmount : null);
   const [amountLoaded, setAmountLoaded] = useState(hasDirectAmount || !orderId);
+
   const amount = resolvedAmount;
-  const hasAmount = typeof amount === 'number' && amount > 0;
+  const canStoreNotice = useMemo(() => {
+    return Boolean(orderId) && amountLoaded;
+  }, [amountLoaded, orderId]);
 
   useEffect(() => {
-    if (hasDirectAmount) {
-      return;
-    }
-
-    if (!orderId) {
+    if (hasDirectAmount || !orderId) {
       return;
     }
 
@@ -63,107 +62,70 @@ export default function PaymentSuccessScreen() {
     return () => {
       cancelled = true;
     };
-  }, [directAmount, hasDirectAmount, orderId]);
-
-  const title = useMemo(() => {
-    if (transactionStatus === 'settlement' || transactionStatus === 'capture') {
-      return 'Payment Completed';
-    }
-    if (transactionStatus === 'pending') {
-      return 'Payment Pending';
-    }
-    return 'Payment Finished';
-  }, [transactionStatus]);
+  }, [hasDirectAmount, orderId]);
 
   useEffect(() => {
-    const shouldAnnounce = transactionStatus === 'settlement' || transactionStatus === 'capture';
-    if (!shouldAnnounce || didSpeak.current || !amountLoaded) {
+    if (!canStoreNotice || didRedirect.current) {
       return;
     }
 
-    didSpeak.current = true;
-    Speech.stop();
-    const speechText = hasAmount
-      ? `Pembayaran berhasil, ${formatCurrencySpeech(amount)}`
-      : 'Pembayaran berhasil';
-
-    Speech.speak(speechText, {
-      language: 'id-ID',
-      rate: 0.95,
-      pitch: 1,
+    didRedirect.current = true;
+    setPaymentNotice({
+      orderId,
+      statusCode,
+      transactionStatus,
+      amount: amount && amount > 0 ? amount : null,
     });
-  }, [amount, amountLoaded, hasAmount, transactionStatus]);
+    router.replace('/');
+  }, [amount, canStoreNotice, orderId, router, setPaymentNotice, statusCode, transactionStatus]);
 
-  const replayVoice = () => {
-    Speech.stop();
-    const speechText = hasAmount
-      ? `Pembayaran berhasil, ${formatCurrencySpeech(amount)}`
-      : 'Pembayaran berhasil';
-
-    Speech.speak(speechText, {
-      language: 'id-ID',
-      rate: 0.95,
-      pitch: 1,
-    });
-  };
+  const detailAmount = amount && amount > 0 ? `Rp ${amount.toLocaleString('id-ID')}` : amountLoaded ? '-' : 'Loading...';
 
   return (
     <NeoScreen>
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.header}>
-          <NeoPill label="Midtrans Finish" tone="lime" />
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.subtitle}>
-            Redirect dari Midtrans sudah masuk ke halaman ini. Status final tetap dikunci oleh webhook server.
-          </Text>
-        </View>
-
+      <View style={styles.center}>
         <NeoCard>
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Order ID</Text>
-              <Text style={styles.summaryValue}>{orderId || '-'}</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Status</Text>
-              <Text style={styles.summaryValue}>{transactionStatus || '-'}</Text>
-            </View>
+          <View style={styles.header}>
+            <NeoPill label="Midtrans Finish" tone="lime" />
+            <Text style={styles.title}>Mengembalikan ke Dashboard</Text>
+            <Text style={styles.subtitle}>
+              Status pembayaran akan ditampilkan sebagai modal di halaman utama.
+            </Text>
           </View>
 
           <View style={styles.detailBox}>
-            <Text style={styles.detailLabel}>Status Code</Text>
-            <Text style={styles.detailValue}>{statusCode || '-'}</Text>
+            <Text style={styles.detailLabel}>Order ID</Text>
+            <Text style={styles.detailValue}>{orderId || '-'}</Text>
+          </View>
+
+          <View style={styles.detailBox}>
+            <Text style={styles.detailLabel}>Status</Text>
+            <Text style={styles.detailValue}>{transactionStatus || '-'}</Text>
           </View>
 
           <View style={styles.detailBox}>
             <Text style={styles.detailLabel}>Amount</Text>
-            <Text style={styles.detailValue}>
-              {hasAmount ? `Rp ${amount.toLocaleString('id-ID')}` : amountLoaded ? '-' : 'Loading...'}
-            </Text>
+            <Text style={styles.detailValue}>{detailAmount}</Text>
           </View>
 
-          <Text style={styles.note}>
-            Jika pembayaran sukses, aplikasi kasir akan menerima update dari webhook dan websocket.
-          </Text>
-
-          <NeoButton label="Ulangi Suara" variant="secondary" onPress={replayVoice} />
-          <NeoButton label="Back to Dashboard" onPress={() => router.replace('/')} />
+          <NeoButton label="Kembali Sekarang" onPress={() => router.replace('/')} />
         </NeoCard>
-      </ScrollView>
+      </View>
     </NeoScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    paddingBottom: 28,
-    gap: 16,
+  center: {
+    flex: 1,
+    justifyContent: 'center',
   },
   header: {
     gap: 8,
+    marginBottom: 12,
   },
   title: {
-    fontSize: 32,
+    fontSize: 30,
     lineHeight: 34,
     fontWeight: '900',
     color: COLORS.ink,
@@ -175,33 +137,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.ink,
   },
-  summaryRow: {
-    gap: 12,
-  },
-  summaryItem: {
-    borderWidth: 3,
-    borderColor: COLORS.ink,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    padding: 14,
-    gap: 4,
-    shadowColor: COLORS.ink,
-    shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 6,
-  },
-  summaryLabel: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: COLORS.ink,
-    textTransform: 'uppercase',
-  },
-  summaryValue: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: COLORS.ink,
-  },
   detailBox: {
     borderWidth: 3,
     borderColor: COLORS.ink,
@@ -209,6 +144,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.paper,
     padding: 14,
     gap: 4,
+    marginBottom: 10,
   },
   detailLabel: {
     fontSize: 12,
@@ -219,12 +155,6 @@ const styles = StyleSheet.create({
   detailValue: {
     fontSize: 18,
     fontWeight: '900',
-    color: COLORS.ink,
-  },
-  note: {
-    fontSize: 13,
-    lineHeight: 19,
-    fontWeight: '700',
     color: COLORS.ink,
   },
 });

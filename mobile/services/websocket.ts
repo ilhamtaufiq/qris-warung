@@ -1,5 +1,19 @@
 import { Alert } from 'react-native';
+import * as Speech from 'expo-speech';
 import { getWebSocketUrl } from '@/lib/api';
+
+function speak(text: string) {
+  try {
+    Speech.stop();
+    Speech.speak(text, {
+      language: 'id-ID',
+      rate: 0.95,
+      pitch: 1,
+    });
+  } catch (error) {
+    console.error('Speech error:', error);
+  }
+}
 
 export class WebSocketService {
   private ws: WebSocket | null = null;
@@ -24,9 +38,10 @@ export class WebSocketService {
       try {
         const data = JSON.parse(e.data);
         if (data.event === 'payment_success') {
-          // Play sound in a real app, here we show an alert (Soundbox MVP)
+          speak('Pembayaran berhasil');
           Alert.alert("PAYMENT RECEIVED!", `Amount: Rp ${data.amount}`);
         } else if (data.event === 'payment_expired') {
+          speak('Pembayaran kedaluwarsa');
           Alert.alert("Payment Expired", `Order: ${data.order_id}`);
         }
       } catch (err) {

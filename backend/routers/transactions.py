@@ -79,6 +79,15 @@ def create_qris(store_id: int, tx: schemas.TransactionCreate, db: Session = Depe
     return create_payment(store_id, tx, db)
 
 
+@router.get("/public/{order_id}", response_model=schemas.TransactionResponse)
+def get_public_transaction(order_id: str, db: Session = Depends(get_db)):
+    transaction = db.query(models.Transaction).filter(models.Transaction.id == order_id).first()
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+
+    return schemas.TransactionResponse.model_validate(transaction)
+
+
 @router.get("/{store_id}/overview", response_model=schemas.TransactionOverviewResponse)
 def transaction_overview(
     store_id: int,

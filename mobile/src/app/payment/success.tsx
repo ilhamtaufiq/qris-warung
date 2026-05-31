@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import axios from 'axios';
 import * as Speech from 'expo-speech';
 import { COLORS, NeoButton, NeoCard, NeoPill, NeoScreen } from '@/components/neo';
+import { getApiBaseUrl } from '@/lib/api';
 import { formatCurrencySpeech } from '@/lib/speech';
 
 function asText(value: string | string[] | undefined) {
@@ -21,7 +23,47 @@ export default function PaymentSuccessScreen() {
   const transactionStatus = asText(params.transaction_status);
   const statusCode = asText(params.status_code);
   const amountParam = asText(params.amount ?? params.gross_amount);
-  const amount = Number(amountParam);
+  const directAmount = Number(amountParam);
+  const hasDirectAmount = Number.isFinite(directAmount) && directAmount > 0;
+  const [resolvedAmount, setResolvedAmount] = useState<number | null>(hasDirectAmount ? directAmount : null);
+  const [amountLoaded, setAmountLoaded] = useState(hasDirectAmount || !orderId);
+  const amount = resolvedAmount;
+  const hasAmount = typeof amount === 'number' && amount > 0;
+
+  useEffect(() => {
+    if (hasDirectAmount) {
+      return;
+    }
+
+    if (!orderId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadAmount = async () => {
+      try {
+        const response = await axios.get(`${getApiBaseUrl()}/api/transactions/public/${orderId}`);
+        if (!cancelled) {
+          setResolvedAmount(Number(response.data.amount ?? 0));
+        }
+      } catch {
+        if (!cancelled) {
+          setResolvedAmount(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setAmountLoaded(true);
+        }
+      }
+    };
+
+    loadAmount();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [directAmount, hasDirectAmount, orderId]);
 
   const title = useMemo(() => {
     if (transactionStatus === 'settlement' || transactionStatus === 'capture') {
@@ -35,13 +77,13 @@ export default function PaymentSuccessScreen() {
 
   useEffect(() => {
     const shouldAnnounce = transactionStatus === 'settlement' || transactionStatus === 'capture';
-    if (!shouldAnnounce || didSpeak.current) {
+    if (!shouldAnnounce || didSpeak.current || !amountLoaded) {
       return;
     }
 
     didSpeak.current = true;
     Speech.stop();
-    const speechText = Number.isFinite(amount) && amount > 0
+    const speechText = hasAmount
       ? `Pembayaran berhasil, ${formatCurrencySpeech(amount)}`
       : 'Pembayaran berhasil';
 
@@ -50,11 +92,11 @@ export default function PaymentSuccessScreen() {
       rate: 0.95,
       pitch: 1,
     });
-  }, [amount, transactionStatus]);
+  }, [amount, amountLoaded, hasAmount, transactionStatus]);
 
   const replayVoice = () => {
     Speech.stop();
-    const speechText = Number.isFinite(amount) && amount > 0
+    const speechText = hasAmount
       ? `Pembayaran berhasil, ${formatCurrencySpeech(amount)}`
       : 'Pembayaran berhasil';
 
@@ -96,7 +138,7 @@ export default function PaymentSuccessScreen() {
           <View style={styles.detailBox}>
             <Text style={styles.detailLabel}>Amount</Text>
             <Text style={styles.detailValue}>
-              {Number.isFinite(amount) && amount > 0 ? `Rp ${amount.toLocaleString('id-ID')}` : '-'}
+              {hasAmount ? `Rp ${amount.toLocaleString('id-ID')}` : amountLoaded ? '-' : 'Loading...'}
             </Text>
           </View>
 

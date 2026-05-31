@@ -49,6 +49,7 @@ export default function RootLayout() {
       <Stack.Screen name="index" />
       <Stack.Screen name="login" />
       <Stack.Screen name="settings" />
+      <Stack.Screen name="transactions" />
       <Stack.Screen name="payment" options={{ presentation: 'modal' }} />
     </Stack>
   );

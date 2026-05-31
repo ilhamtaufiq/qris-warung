@@ -62,3 +62,32 @@ class TransactionResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class TransactionListItem(BaseModel):
+    id: str
+    store_id: int
+    amount: int
+    status: str
+    created_at: datetime
+    payment_type: Optional[str] = None
+    payment_url: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class TransactionStats(BaseModel):
+    total_transactions: int
+    success_transactions: int
+    pending_transactions: int
+    expired_transactions: int
+    total_amount: int
+    success_amount: int
+    pending_amount: int
+    expired_amount: int
+
+
+class TransactionOverviewResponse(BaseModel):
+    stats: TransactionStats
+    transactions: list[TransactionListItem]

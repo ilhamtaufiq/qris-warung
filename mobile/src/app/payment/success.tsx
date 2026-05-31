@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as Speech from 'expo-speech';
 import { COLORS, NeoButton, NeoCard, NeoPill, NeoScreen } from '@/components/neo';
 
 function asText(value: string | string[] | undefined) {
@@ -13,6 +14,7 @@ function asText(value: string | string[] | undefined) {
 export default function PaymentSuccessScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const didSpeak = useRef(false);
 
   const orderId = asText(params.order_id);
   const transactionStatus = asText(params.transaction_status);
@@ -27,6 +29,30 @@ export default function PaymentSuccessScreen() {
     }
     return 'Payment Finished';
   }, [transactionStatus]);
+
+  useEffect(() => {
+    const shouldAnnounce = transactionStatus === 'settlement' || transactionStatus === 'capture';
+    if (!shouldAnnounce || didSpeak.current) {
+      return;
+    }
+
+    didSpeak.current = true;
+    Speech.stop();
+    Speech.speak('Pembayaran berhasil', {
+      language: 'id-ID',
+      rate: 0.95,
+      pitch: 1,
+    });
+  }, [transactionStatus]);
+
+  const replayVoice = () => {
+    Speech.stop();
+    Speech.speak('Pembayaran berhasil', {
+      language: 'id-ID',
+      rate: 0.95,
+      pitch: 1,
+    });
+  };
 
   return (
     <NeoScreen>
@@ -60,6 +86,7 @@ export default function PaymentSuccessScreen() {
             Jika pembayaran sukses, aplikasi kasir akan menerima update dari webhook dan websocket.
           </Text>
 
+          <NeoButton label="Ulangi Suara" variant="secondary" onPress={replayVoice} />
           <NeoButton label="Back to Dashboard" onPress={() => router.replace('/')} />
         </NeoCard>
       </ScrollView>

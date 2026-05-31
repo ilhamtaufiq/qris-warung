@@ -71,6 +71,11 @@ export default function DashboardScreen() {
               variant="secondary"
               onPress={() => router.push({ pathname: '/settings' } as any)}
             />
+            <NeoButton
+              label="Transactions"
+              variant="secondary"
+              onPress={() => router.push({ pathname: '/transactions' } as any)}
+            />
             <NeoButton label="Logout" variant="danger" onPress={logout} />
           </View>
         </View>

@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
 import models
 from routers import auth, transactions, webhooks
+from config import settings
 from typing import Dict, List
 
 # Create DB tables
@@ -10,10 +11,12 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Warung Payment API")
 
+cors_origins = [origin.strip() for origin in settings.CORS_ORIGINS.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=cors_origins,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
